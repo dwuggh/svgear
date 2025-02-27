@@ -1,12 +1,24 @@
-use super::Painter;
 use anyhow::Result;
+
+use super::{PaintParams, PaintType};
 
 pub struct Mermaid;
 
-#[async_trait::async_trait]
-impl Painter for Mermaid {
-    async fn paint(&self, content: &str) -> Result<String> {
+impl Mermaid {
+    /// Create a new Mermaid renderer
+    pub fn new() -> Self {
+        Mermaid
+    }
+    
+    /// Paint Mermaid diagram to SVG
+    pub async fn paint(&self, params: PaintParams) -> Result<String> {
+        // Verify this is a Mermaid diagram
+        if params.ty != PaintType::Mermaid {
+            return Err(anyhow::anyhow!("Unsupported paint type for Mermaid: {:?}", params.ty));
+        }
+        
         // Send request to Mermaid server and return SVG
+        // TODO: Implement actual Mermaid rendering
         Ok(String::new())
     }
 }

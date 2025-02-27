@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use crate::error::SvgearError;
-use super::Painter;
+use super::{PaintParams, PaintType};
 
 /// Request to the MathJax server
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,19 +45,20 @@ impl MathjaxServer {
     fn server_url(&self) -> String {
         format!("http://{}:{}/convert", self.address, self.port)
     }
-}
-
-#[async_trait::async_trait]
-impl Painter for MathjaxServer {
-    async fn paint(&self, content: &str) -> Result<String> {
-        // Determine if the content is inline or display mode
-        // Simple heuristic: if it contains newlines or \begin{...}, it's display mode
-        let inline = !content.contains('\n') && !content.contains("\\begin{");
+    
+    /// Paint TeX content to SVG
+    pub async fn paint(&self, params: PaintParams) -> Result<String> {
+        // Determine if the content is inline or display mode based on the paint type
+        let inline = match params.ty {
+            PaintType::InlineTeX => true,
+            PaintType::Equation => false,
+            _ => return Err(anyhow::anyhow!("Unsupported paint type for MathJax: {:?}", params.ty)),
+        };
 
         // Create the request
         let request = MathJaxRequest {
             inline,
-            content: content.to_string(),
+            content: params.content,
         };
 
         // Send the request to the MathJax server

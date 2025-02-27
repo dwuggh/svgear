@@ -9,7 +9,7 @@ pub use manager::{
     GetBitmapRequest, GetBitmapResponse, RenderRequest, RenderResponse, SharedSvgManager,
     SvgManager,
 };
-pub use painter::Painter;
+pub use painter::{Painter, PaintParams, PaintType};
 pub use rpc::{Method, RpcRequest, RpcResponse, RpcServer};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
