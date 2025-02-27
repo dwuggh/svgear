@@ -13,7 +13,7 @@ impl SvgManager {
         }
     }
 
-    pub fn scale_svg(&mut self, id: &str, svg_ &str, width: u32, height: u32) -> Result<()> {
+    pub fn scale_svg(&mut self, id: &str, svg_data: &str, width: u32, height: u32) -> Result<()> {
         let tree = Tree::from_str(svg_data, &resvg::usvg::Options::default())?;
         // Perform scaling and store bitmap
         Ok(())
