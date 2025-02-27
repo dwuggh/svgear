@@ -21,6 +21,7 @@ pub enum PaintType {
 }
 
 /// A painter that can render different types of content to SVG
+#[derive(Clone)]
 pub struct Painter {
     mathjax: Option<MathjaxServer>,
     mermaid: Option<Mermaid>,

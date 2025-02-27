@@ -1,4 +1,5 @@
 use crate::manager::{GetBitmapRequest, RenderRequest, SharedSvgManager};
+use crate::painter::{Painter, PaintParams};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -9,6 +10,7 @@ use warp::{reply::json, reply::Reply, Filter};
 pub enum Method {
     RenderSvg,
     GetBitmap,
+    Paint,
 }
 
 /// Generic RPC request
@@ -30,23 +32,78 @@ pub struct RpcResponse<T> {
 /// RPC server for SVG rendering
 pub struct RpcServer {
     manager: SharedSvgManager,
+    painter: Painter,
+}
+
+impl Clone for RpcServer {
+    fn clone(&self) -> Self {
+        RpcServer {
+            manager: self.manager.clone(),
+            painter: self.painter.clone(),
+        }
+    }
+        Method::Paint => {
+            let params: PaintParams = match serde_json::from_value(
+                request
+                    .get("params")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null),
+            ) {
+                Ok(p) => p,
+                Err(e) => {
+                    return Ok(json(&RpcResponse::<()> {
+                        result: None,
+                        error: Some(format!("Invalid parameters: {}", e)),
+                        id: request
+                            .get("id")
+                            .and_then(|id| id.as_str())
+                            .map(String::from),
+                    }));
+                }
+            };
+
+            // Create a response type for Paint
+            #[derive(Serialize)]
+            struct PaintResult {
+                svg: String,
+            }
+
+            // Call the painter
+            match server.painter.paint(params).await {
+                Ok(svg) => Ok(json(&RpcResponse {
+                    result: Some(PaintResult { svg }),
+                    error: None,
+                    id: request
+                        .get("id")
+                        .and_then(|id| id.as_str())
+                        .map(String::from),
+                })),
+                Err(e) => Ok(json(&RpcResponse::<()> {
+                    result: None,
+                    error: Some(format!("Error painting: {}", e)),
+                    id: request
+                        .get("id")
+                        .and_then(|id| id.as_str())
+                        .map(String::from),
+                })),
+            }
+        }
+    }
 }
 
 impl RpcServer {
     /// Create a new RPC server
-    pub fn new(manager: SharedSvgManager) -> Self {
-        RpcServer { manager }
+    pub fn new(manager: SharedSvgManager, painter: Painter) -> Self {
+        RpcServer { manager, painter }
     }
 
     /// Start the RPC server
     pub async fn start(&self, port: u16) -> Result<()> {
-        let manager = self.manager.clone();
-
         // Route for rendering SVGs
         let render_route = warp::path("rpc")
             .and(warp::post())
             .and(warp::body::json())
-            .and(with_manager(manager.clone()))
+            .and(with_manager(self.clone()))
             .and_then(handle_rpc);
 
 
@@ -59,20 +116,21 @@ impl RpcServer {
 
 /// Helper to inject the manager into route handlers
 fn with_manager(
-    manager: SharedSvgManager,
-) -> impl Filter<Extract = (SharedSvgManager,), Error = Infallible> + Clone {
-    warp::any().map(move || manager.clone())
+    server: RpcServer,
+) -> impl Filter<Extract = (RpcServer,), Error = Infallible> + Clone {
+    warp::any().map(move || server.clone())
 }
 
 /// Handle RPC requests
 async fn handle_rpc(
     request: serde_json::Value,
-    manager: SharedSvgManager,
+    server: RpcServer,
 ) -> Result<impl Reply, Infallible> {
     // Parse the method
     let method = match request.get("method").and_then(|m| m.as_str()) {
         Some("RenderSvg") => Method::RenderSvg,
         Some("GetBitmap") => Method::GetBitmap,
+        Some("Paint") => Method::Paint,
         _ => {
             return Ok(json(&RpcResponse::<()> {
                 result: None,
@@ -107,7 +165,7 @@ async fn handle_rpc(
                 }
             };
 
-            match manager.process_render_request(params) {
+            match server.manager.process_render_request(params) {
                 Ok(response) => Ok(json(&RpcResponse {
                     result: Some(response),
                     error: None,
@@ -146,7 +204,7 @@ async fn handle_rpc(
                 }
             };
 
-            match manager.process_get_bitmap_request(params) {
+            match server.manager.process_get_bitmap_request(params) {
                 Ok(response) => Ok(json(&RpcResponse {
                     result: Some(response),
                     error: None,

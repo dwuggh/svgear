@@ -14,7 +14,8 @@ pub use rpc::{Method, RpcRequest, RpcResponse, RpcServer};
 
 pub async fn run_server(port: u16) -> anyhow::Result<()> {
     let manager = SharedSvgManager::new();
-    let server = RpcServer::new(manager);
+    let painter = Painter::new();
+    let server = RpcServer::new(manager, painter);
     server.start(port).await
 }
 
