@@ -1,5 +1,5 @@
 use anyhow::Result;
-use reqwest::blocking::Client;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -47,8 +47,9 @@ impl MathjaxServer {
     }
 }
 
+#[async_trait::async_trait]
 impl Painter for MathjaxServer {
-    fn paint(&self, content: &str) -> Result<String> {
+    async fn paint(&self, content: &str) -> Result<String> {
         // Determine if the content is inline or display mode
         // Simple heuristic: if it contains newlines or \begin{...}, it's display mode
         let inline = !content.contains('\n') && !content.contains("\\begin{");
@@ -60,10 +61,11 @@ impl Painter for MathjaxServer {
         };
 
         // Send the request to the MathJax server
-        let response = Client::new()
+        let response = self.client
             .post(&self.server_url())
             .json(&request)
-            .send()?;
+            .send()
+            .await?;
 
         // Check if the request was successful
         if !response.status().is_success() {
@@ -71,7 +73,7 @@ impl Painter for MathjaxServer {
         }
 
         // Parse the response as text (SVG content)
-        let svg_content = response.text()?;
+        let svg_content = response.text().await?;
         
         // Return the SVG content
         Ok(svg_content)
