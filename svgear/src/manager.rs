@@ -9,7 +9,7 @@ use std::sync::{Arc, RwLock};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RenderRequest {
     /// SVG content to render
-    pub svg_ String,
+    pub svg_data: String,
     /// Desired width for rendering
     pub width: Option<u32>,
     /// Desired height for rendering
@@ -53,13 +53,14 @@ pub struct GetBitmapResponse {
 }
 
 /// Manager for SVG storage and rendering
+#[derive(Debug, Clone)]
 pub struct SvgManager {
     /// Storage for original SVG data
     svgs: FxHashMap<String, String>,
     /// Storage for rendered bitmaps
     bitmaps: FxHashMap<String, Vec<u8>>,
     /// Metadata for rendered bitmaps
-    meta FxHashMap<String, (u32, u32)>, // (width, height)
+    metadata: FxHashMap<String, (u32, u32)>, // (width, height)
 }
 
 impl SvgManager {
@@ -68,19 +69,19 @@ impl SvgManager {
         SvgManager {
             svgs: FxHashMap::default(),
             bitmaps: FxHashMap::default(),
-            meta FxHashMap::default(),
+            metadata: FxHashMap::default(),
         }
     }
 
     /// Generate a unique ID for an SVG
-    pub fn generate_id(svg_ &str) -> String {
+    pub fn generate_id(svg_data: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(svg_data.as_bytes());
         format!("{:x}", hasher.finalize())[..16].to_string()
     }
 
     /// Store an SVG and return its ID
-    pub fn store_svg(&mut self, svg_ &str, custom_id: Option<String>) -> String {
+    pub fn store_svg(&mut self, svg_data: &str, custom_id: Option<String>) -> String {
         let id = custom_id.unwrap_or_else(|| Self::generate_id(svg_data));
         self.svgs.insert(id.clone(), svg_data.to_string());
         id
@@ -124,7 +125,7 @@ impl SvgManager {
             .ok_or_else(|| anyhow::anyhow!("Failed to create pixmap"))?;
 
         // Render the SVG
-        resvg::render(&tree, usvg::FitTo::Size(target_width, target_height), pixmap.as_mut());
+        resvg::render(&tree, usvg::Transform::identity(), &mut pixmap.as_mut());
 
         // Convert to PNG
         let png_data = pixmap.encode_png()?;
@@ -182,6 +183,7 @@ impl SvgManager {
 }
 
 /// Thread-safe wrapper around SvgManager
+#[derive(Clone)]
 pub struct SharedSvgManager(Arc<RwLock<SvgManager>>);
 
 impl SharedSvgManager {
