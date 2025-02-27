@@ -1,22 +1,21 @@
-pub mod painter;
-pub mod manager;
-pub mod rpc;
-pub mod error;
 pub mod client;
+pub mod error;
+pub mod manager;
+pub mod painter;
+pub mod rpc;
 
-pub use painter::Painter;
-pub use manager::{
-    SvgManager, SharedSvgManager, 
-    RenderRequest, RenderResponse,
-    GetBitmapRequest, GetBitmapResponse
-};
-pub use rpc::{RpcServer, Method, RpcRequest, RpcResponse};
 pub use client::SvgClient;
+pub use manager::{
+    GetBitmapRequest, GetBitmapResponse, RenderRequest, RenderResponse, SharedSvgManager,
+    SvgManager,
+};
+pub use painter::Painter;
+pub use rpc::{Method, RpcRequest, RpcResponse, RpcServer};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CmdType {
     TeX,
-    Mermaid
+    Mermaid,
 }
 
 pub async fn run_server(port: u16) -> anyhow::Result<()> {

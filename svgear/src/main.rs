@@ -1,9 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use svgear::painter::{MathjaxServer, Mermaid};
 use svgear::Painter;
-use svgear::painter::{Mermaid, MathjaxServer};
-use std::fs;
-use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -19,7 +17,6 @@ enum Commands {
         /// Input file path
         #[arg(short, long)]
         input: String,
-        
     },
     /// Generate SVG from Mermaid
     Mermaid {
@@ -37,19 +34,13 @@ async fn main() -> Result<()> {
 
     match &cli.command {
         Commands::Math { input } => {
-            let content = fs::read_to_string(input)?;
-            let painter = MathjaxServer;
-            let svg = painter.paint(&content)?;
-            fs::write(output, svg)?;
+            todo!()
         }
         Commands::Mermaid { input } => {
-            let content = fs::read_to_string(input)?;
-            let painter = Mermaid;
-            let svg = painter.paint(&content)?;
-            fs::write(output, svg)?;
+            todo!()
         }
         Commands::Server => {
-            svgear::run_server().await?;
+            svgear::run_server(3000).await?;
         }
     }
 

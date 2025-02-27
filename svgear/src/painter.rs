@@ -1,10 +1,10 @@
 use anyhow::Result;
 
-mod mermaid;
 mod mathjax_server;
+mod mermaid;
 
-pub use mermaid::Mermaid;
 pub use mathjax_server::MathjaxServer;
+pub use mermaid::Mermaid;
 
 pub trait Painter {
     fn paint(&self, content: &str) -> Result<String>;

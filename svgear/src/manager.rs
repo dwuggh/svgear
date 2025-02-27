@@ -1,8 +1,11 @@
-use fxhash::FxHashMap;
-use resvg::{tiny_skia, usvg::{self, Tree}};
 use anyhow::Result;
-use serde::{Serialize, Deserialize};
-use sha2::{Sha256, Digest};
+use fxhash::FxHashMap;
+use resvg::{
+    tiny_skia,
+    usvg::{self, Tree},
+};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::sync::{Arc, RwLock};
 
 /// Represents a request to render an SVG
@@ -93,8 +96,15 @@ impl SvgManager {
     }
 
     /// Render an SVG to a bitmap with specified dimensions
-    pub fn render_svg(&mut self, id: &str, width: Option<u32>, height: Option<u32>) -> Result<(u32, u32)> {
-        let svg_data = self.get_svg(id).ok_or_else(|| anyhow::anyhow!("SVG not found"))?;
+    pub fn render_svg(
+        &mut self,
+        id: &str,
+        width: Option<u32>,
+        height: Option<u32>,
+    ) -> Result<(u32, u32)> {
+        let svg_data = self
+            .get_svg(id)
+            .ok_or_else(|| anyhow::anyhow!("SVG not found"))?;
 
         // Parse the SVG
         let opt = usvg::Options::default();
@@ -109,15 +119,12 @@ impl SvgManager {
             (Some(w), None) => {
                 let aspect = orig_size.height() / orig_size.width();
                 (w, (w as f32 * aspect) as u32)
-            },
+            }
             (None, Some(h)) => {
                 let aspect = orig_size.width() / orig_size.height();
                 ((h as f32 * aspect) as u32, h)
-            },
-            (None, None) => (
-                orig_size.width() as u32,
-                orig_size.height() as u32
-            ),
+            }
+            (None, None) => (orig_size.width() as u32, orig_size.height() as u32),
         };
 
         // Create a pixmap with the target size
@@ -132,7 +139,8 @@ impl SvgManager {
 
         // Store the bitmap and metadata
         self.bitmaps.insert(id.to_string(), png_data);
-        self.metadata.insert(id.to_string(), (target_width, target_height));
+        self.metadata
+            .insert(id.to_string(), (target_width, target_height));
 
         Ok((target_width, target_height))
     }
@@ -147,7 +155,9 @@ impl SvgManager {
     /// Process a render request
     pub fn process_render_request(&mut self, request: RenderRequest) -> Result<RenderResponse> {
         // Generate or use provided ID
-        let id = request.id.unwrap_or_else(|| Self::generate_id(&request.svg_data));
+        let id = request
+            .id
+            .unwrap_or_else(|| Self::generate_id(&request.svg_data));
 
         // Check if we already have this SVG
         let cached = self.get_svg(&id).is_some();
@@ -169,8 +179,12 @@ impl SvgManager {
     }
 
     /// Process a get bitmap request
-    pub fn process_get_bitmap_request(&self, request: GetBitmapRequest) -> Result<GetBitmapResponse> {
-        let (bitmap, width, height) = self.get_bitmap(&request.id)
+    pub fn process_get_bitmap_request(
+        &self,
+        request: GetBitmapRequest,
+    ) -> Result<GetBitmapResponse> {
+        let (bitmap, width, height) = self
+            .get_bitmap(&request.id)
             .ok_or_else(|| anyhow::anyhow!("Bitmap not found"))?;
 
         Ok(GetBitmapResponse {
@@ -198,7 +212,10 @@ impl SharedSvgManager {
     }
 
     /// Process a get bitmap request
-    pub fn process_get_bitmap_request(&self, request: GetBitmapRequest) -> Result<GetBitmapResponse> {
+    pub fn process_get_bitmap_request(
+        &self,
+        request: GetBitmapRequest,
+    ) -> Result<GetBitmapResponse> {
         self.0.read().unwrap().process_get_bitmap_request(request)
     }
 
