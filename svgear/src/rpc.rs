@@ -42,53 +42,6 @@ impl Clone for RpcServer {
             painter: self.painter.clone(),
         }
     }
-        Method::Paint => {
-            let params: PaintParams = match serde_json::from_value(
-                request
-                    .get("params")
-                    .cloned()
-                    .unwrap_or(serde_json::Value::Null),
-            ) {
-                Ok(p) => p,
-                Err(e) => {
-                    return Ok(json(&RpcResponse::<()> {
-                        result: None,
-                        error: Some(format!("Invalid parameters: {}", e)),
-                        id: request
-                            .get("id")
-                            .and_then(|id| id.as_str())
-                            .map(String::from),
-                    }));
-                }
-            };
-
-            // Create a response type for Paint
-            #[derive(Serialize)]
-            struct PaintResult {
-                svg: String,
-            }
-
-            // Call the painter
-            match server.painter.paint(params).await {
-                Ok(svg) => Ok(json(&RpcResponse {
-                    result: Some(PaintResult { svg }),
-                    error: None,
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-                Err(e) => Ok(json(&RpcResponse::<()> {
-                    result: None,
-                    error: Some(format!("Error painting: {}", e)),
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-            }
-        }
-    }
 }
 
 impl RpcServer {
@@ -216,6 +169,52 @@ async fn handle_rpc(
                 Err(e) => Ok(json(&RpcResponse::<()> {
                     result: None,
                     error: Some(format!("Error getting bitmap: {}", e)),
+                    id: request
+                        .get("id")
+                        .and_then(|id| id.as_str())
+                        .map(String::from),
+                })),
+            }
+        }
+        Method::Paint => {
+            let params: PaintParams = match serde_json::from_value(
+                request
+                    .get("params")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null),
+            ) {
+                Ok(p) => p,
+                Err(e) => {
+                    return Ok(json(&RpcResponse::<()> {
+                        result: None,
+                        error: Some(format!("Invalid parameters: {}", e)),
+                        id: request
+                            .get("id")
+                            .and_then(|id| id.as_str())
+                            .map(String::from),
+                    }));
+                }
+            };
+
+            // Create a response type for Paint
+            #[derive(Serialize)]
+            struct PaintResult {
+                svg: String,
+            }
+
+            // Call the painter
+            match server.painter.paint(params).await {
+                Ok(svg) => Ok(json(&RpcResponse {
+                    result: Some(PaintResult { svg }),
+                    error: None,
+                    id: request
+                        .get("id")
+                        .and_then(|id| id.as_str())
+                        .map(String::from),
+                })),
+                Err(e) => Ok(json(&RpcResponse::<()> {
+                    result: None,
+                    error: Some(format!("Error painting: {}", e)),
                     id: request
                         .get("id")
                         .and_then(|id| id.as_str())

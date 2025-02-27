@@ -2,6 +2,7 @@ use anyhow::Result;
 
 use super::{PaintParams, PaintType};
 
+#[derive(Debug, Clone)]
 pub struct Mermaid;
 
 impl Mermaid {
