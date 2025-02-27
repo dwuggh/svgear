@@ -1,10 +1,12 @@
 pub mod painter;
-mod http_painter;
-mod mermaid_painter;
 
-pub use http_painter::HttpPainter;
-pub use mermaid_painter::MermaidPainter;
 pub use painter::Painter;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum CmdType {
+    TeX,
+    Mermaid
+}
 
 pub async fn run_server() -> anyhow::Result<()> {
     // Implement server logic here

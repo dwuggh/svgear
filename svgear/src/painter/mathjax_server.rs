@@ -1,9 +1,10 @@
-use super::painter::Painter;
 use anyhow::Result;
 
-pub struct HttpPainter;
+use super::Painter;
 
-impl Painter for HttpPainter {
+pub struct MathjaxServer;
+
+impl Painter for MathjaxServer {
     fn paint(&self, content: &str) -> Result<String> {
         // Send request to MathJax server and return SVG
         Ok(String::new())
