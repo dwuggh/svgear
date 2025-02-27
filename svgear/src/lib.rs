@@ -12,12 +12,6 @@ pub use manager::{
 pub use painter::{Painter, PaintParams, PaintType};
 pub use rpc::{Method, RpcRequest, RpcResponse, RpcServer};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum CmdType {
-    TeX,
-    Mermaid,
-}
-
 pub async fn run_server(port: u16) -> anyhow::Result<()> {
     let manager = SharedSvgManager::new();
     let server = RpcServer::new(manager);
