@@ -1,11 +1,10 @@
-pub mod manager;
 pub mod painter;
-pub mod http_painter;
-pub mod mermaid_painter;
-pub mod error;
+mod http_painter;
+mod mermaid_painter;
 
-use manager::SvgManager;
-use painter::Painter;
+pub use http_painter::HttpPainter;
+pub use mermaid_painter::MermaidPainter;
+pub use painter::Painter;
 
 pub async fn run_server() -> anyhow::Result<()> {
     // Implement server logic here
