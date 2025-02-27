@@ -3,7 +3,7 @@ use crate::painter::{Painter, PaintParams};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
-use warp::{reply::json, reply::Reply, Filter};
+use warp::{reply::json, reply::Json, reply::Reply, Filter};
 
 /// RPC method types
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,7 +94,7 @@ async fn handle_render_svg(
     params: RenderRequest,
     server: &RpcServer,
     request_id: Option<String>,
-) -> impl Reply {
+) -> Json {
     match server.manager.process_render_request(params) {
         Ok(response) => json(&RpcResponse {
             result: Some(response),
@@ -114,7 +114,7 @@ async fn handle_get_bitmap(
     params: GetBitmapRequest,
     server: &RpcServer,
     request_id: Option<String>,
-) -> impl Reply {
+) -> Json {
     match server.manager.process_get_bitmap_request(params) {
         Ok(response) => json(&RpcResponse {
             result: Some(response),
@@ -134,7 +134,7 @@ async fn handle_paint(
     params: PaintParams,
     server: &RpcServer,
     request_id: Option<String>,
-) -> impl Reply {
+) -> Json {
     match server.painter.paint(params).await {
         Ok(svg) => json(&RpcResponse {
             result: Some(PaintResult { svg }),
@@ -154,7 +154,7 @@ async fn handle_render_to_bitmap(
     params: RenderToBitmapParams,
     server: &RpcServer,
     request_id: Option<String>,
-) -> impl Reply {
+) -> Json {
     // Step 1: Paint to SVG
     let paint_result = match server.painter.paint(params.paint_params).await {
         Ok(svg) => svg,
@@ -169,7 +169,7 @@ async fn handle_render_to_bitmap(
 
     // Step 2: Render SVG to bitmap
     let render_request = RenderRequest {
-        svg_data: paint_result,
+        svg_ paint_result,
         width: params.width,
         height: params.height,
         id: None,
