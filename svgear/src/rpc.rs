@@ -1,6 +1,4 @@
-use crate::manager::{
-    GetBitmapRequest, GetBitmapResponse, RenderRequest, RenderResponse, SharedSvgManager,
-};
+use crate::manager::{GetBitmapRequest, RenderRequest, SharedSvgManager};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;

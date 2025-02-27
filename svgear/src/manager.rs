@@ -41,18 +41,26 @@ pub struct GetBitmapRequest {
     pub id: String,
 }
 
+/// Bitmap structure to hold rendered image data and dimensions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Bitmap {
+    /// The rendered bitmap as PNG bytes (base64 encoded when serialized)
+    #[serde(with = "serde_bytes")]
+    pub data: Vec<u8>,
+    /// Width of the bitmap
+    pub width: u32,
+    /// Height of the bitmap
+    pub height: u32,
+}
+
 /// Response containing a rendered bitmap
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetBitmapResponse {
     /// ID of the SVG
     pub id: String,
-    /// The rendered bitmap as PNG bytes (base64 encoded when serialized)
-    #[serde(with = "serde_bytes")]
-    pub bitmap: Vec<u8>,
-    /// Width of the bitmap
-    pub width: u32,
-    /// Height of the bitmap
-    pub height: u32,
+    /// The bitmap data and dimensions
+    #[serde(flatten)]
+    pub bitmap: Bitmap,
 }
 
 /// Manager for SVG storage and rendering
@@ -60,10 +68,8 @@ pub struct GetBitmapResponse {
 pub struct SvgManager {
     /// Storage for original SVG data
     svgs: FxHashMap<String, String>,
-    /// Storage for rendered bitmaps
-    bitmaps: FxHashMap<String, Vec<u8>>,
-    /// Metadata for rendered bitmaps
-    metadata: FxHashMap<String, (u32, u32)>, // (width, height)
+    /// Storage for rendered bitmaps with their metadata
+    bitmaps: FxHashMap<String, Bitmap>,
 }
 
 impl SvgManager {
@@ -72,7 +78,6 @@ impl SvgManager {
         SvgManager {
             svgs: FxHashMap::default(),
             bitmaps: FxHashMap::default(),
-            metadata: FxHashMap::default(),
         }
     }
 
@@ -137,19 +142,22 @@ impl SvgManager {
         // Convert to PNG
         let png_data = pixmap.encode_png()?;
 
-        // Store the bitmap and metadata
-        self.bitmaps.insert(id.to_string(), png_data);
-        self.metadata
-            .insert(id.to_string(), (target_width, target_height));
+        // Store the bitmap with its metadata
+        self.bitmaps.insert(
+            id.to_string(),
+            Bitmap {
+                data: png_data,
+                width: target_width,
+                height: target_height,
+            },
+        );
 
         Ok((target_width, target_height))
     }
 
     /// Get a rendered bitmap by ID
-    pub fn get_bitmap(&self, id: &str) -> Option<(&[u8], u32, u32)> {
-        let bitmap = self.bitmaps.get(id)?;
-        let (width, height) = self.metadata.get(id)?;
-        Some((bitmap, *width, *height))
+    pub fn get_bitmap(&self, id: &str) -> Option<&Bitmap> {
+        self.bitmaps.get(id)
     }
 
     /// Process a render request
@@ -183,15 +191,17 @@ impl SvgManager {
         &self,
         request: GetBitmapRequest,
     ) -> Result<GetBitmapResponse> {
-        let (bitmap, width, height) = self
+        let bitmap = self
             .get_bitmap(&request.id)
             .ok_or_else(|| anyhow::anyhow!("Bitmap not found"))?;
 
         Ok(GetBitmapResponse {
             id: request.id,
-            bitmap: bitmap.to_vec(),
-            width,
-            height,
+            bitmap: Bitmap {
+                data: bitmap.data.clone(),
+                width: bitmap.width,
+                height: bitmap.height,
+            },
         })
     }
 }

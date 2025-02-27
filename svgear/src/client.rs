@@ -88,7 +88,7 @@ impl SvgClient {
     /// Save a bitmap to a file
     pub async fn save_bitmap(&self, id: &str, path: &str) -> Result<()> {
         let response = self.get_bitmap(id).await?;
-        std::fs::write(path, &response.bitmap)?;
+        std::fs::write(path, &response.bitmap.data)?;
         Ok(())
     }
 }

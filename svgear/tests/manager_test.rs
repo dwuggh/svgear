@@ -26,12 +26,12 @@ fn test_svg_manager() -> Result<()> {
     assert_eq!(height, 200); // Should maintain aspect ratio (1:1)
 
     // Get the bitmap
-    let (bitmap, w, h) = manager.get_bitmap(&id).unwrap();
+    let bitmap = manager.get_bitmap(&id).unwrap();
 
     // Verify bitmap exists and has correct dimensions
-    assert!(!bitmap.is_empty());
-    assert_eq!(w, 200);
-    assert_eq!(h, 200);
+    assert!(!bitmap.data.is_empty());
+    assert_eq!(bitmap.width, 200);
+    assert_eq!(bitmap.height, 200);
 
     Ok(())
 }
