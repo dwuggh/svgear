@@ -11,6 +11,7 @@ pub enum Method {
     RenderSvg,
     GetBitmap,
     Paint,
+    RenderToBitmap,
 }
 
 /// Generic RPC request
@@ -27,6 +28,20 @@ pub struct RpcResponse<T> {
     pub result: Option<T>,
     pub error: Option<String>,
     pub id: Option<String>,
+}
+
+/// Result of a paint operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaintResult {
+    pub svg: String,
+}
+
+/// Parameters for RenderToBitmap
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RenderToBitmapParams {
+    pub paint_params: PaintParams,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
 }
 
 /// RPC server for SVG rendering
@@ -74,6 +89,120 @@ fn with_manager(
     warp::any().map(move || server.clone())
 }
 
+/// Handle RenderSvg requests
+async fn handle_render_svg(
+    params: RenderRequest,
+    server: &RpcServer,
+    request_id: Option<String>,
+) -> impl Reply {
+    match server.manager.process_render_request(params) {
+        Ok(response) => json(&RpcResponse {
+            result: Some(response),
+            error: None,
+            id: request_id,
+        }),
+        Err(e) => json(&RpcResponse::<()> {
+            result: None,
+            error: Some(format!("Error rendering SVG: {}", e)),
+            id: request_id,
+        }),
+    }
+}
+
+/// Handle GetBitmap requests
+async fn handle_get_bitmap(
+    params: GetBitmapRequest,
+    server: &RpcServer,
+    request_id: Option<String>,
+) -> impl Reply {
+    match server.manager.process_get_bitmap_request(params) {
+        Ok(response) => json(&RpcResponse {
+            result: Some(response),
+            error: None,
+            id: request_id,
+        }),
+        Err(e) => json(&RpcResponse::<()> {
+            result: None,
+            error: Some(format!("Error getting bitmap: {}", e)),
+            id: request_id,
+        }),
+    }
+}
+
+/// Handle Paint requests
+async fn handle_paint(
+    params: PaintParams,
+    server: &RpcServer,
+    request_id: Option<String>,
+) -> impl Reply {
+    match server.painter.paint(params).await {
+        Ok(svg) => json(&RpcResponse {
+            result: Some(PaintResult { svg }),
+            error: None,
+            id: request_id,
+        }),
+        Err(e) => json(&RpcResponse::<()> {
+            result: None,
+            error: Some(format!("Error painting: {}", e)),
+            id: request_id,
+        }),
+    }
+}
+
+/// Handle RenderToBitmap requests
+async fn handle_render_to_bitmap(
+    params: RenderToBitmapParams,
+    server: &RpcServer,
+    request_id: Option<String>,
+) -> impl Reply {
+    // Step 1: Paint to SVG
+    let paint_result = match server.painter.paint(params.paint_params).await {
+        Ok(svg) => svg,
+        Err(e) => {
+            return json(&RpcResponse::<()> {
+                result: None,
+                error: Some(format!("Error painting: {}", e)),
+                id: request_id,
+            })
+        }
+    };
+
+    // Step 2: Render SVG to bitmap
+    let render_request = RenderRequest {
+        svg: paint_result,
+        width: params.width,
+        height: params.height,
+        id: None,
+    };
+
+    match server.manager.process_render_request(render_request) {
+        Ok(render_response) => {
+            // Step 3: Get the bitmap
+            let get_bitmap_request = GetBitmapRequest {
+                id: render_response.id,
+            };
+
+            match server.manager.process_get_bitmap_request(get_bitmap_request) {
+                Ok(bitmap_response) => json(&RpcResponse {
+                    result: Some(bitmap_response),
+                    error: None,
+                    id: request_id,
+                }),
+                Err(e) => json(&RpcResponse::<()> {
+                    result: None,
+                    error: Some(format!("Error getting bitmap: {}", e)),
+                    id: request_id,
+                }),
+            }
+        }
+        Err(e) => json(&RpcResponse::<()> {
+            result: None,
+            error: Some(format!("Error rendering SVG: {}", e)),
+            id: request_id,
+        }),
+    }
+}
+
 /// Handle RPC requests
 async fn handle_rpc(
     request: serde_json::Value,
@@ -84,6 +213,7 @@ async fn handle_rpc(
         Some("RenderSvg") => Method::RenderSvg,
         Some("GetBitmap") => Method::GetBitmap,
         Some("Paint") => Method::Paint,
+        Some("RenderToBitmap") => Method::RenderToBitmap,
         _ => {
             return Ok(json(&RpcResponse::<()> {
                 result: None,
@@ -95,6 +225,12 @@ async fn handle_rpc(
             }));
         }
     };
+
+    // Get the request ID
+    let request_id = request
+        .get("id")
+        .and_then(|id| id.as_str())
+        .map(String::from);
 
     // Process based on method
     match method {
@@ -110,32 +246,12 @@ async fn handle_rpc(
                     return Ok(json(&RpcResponse::<()> {
                         result: None,
                         error: Some(format!("Invalid parameters: {}", e)),
-                        id: request
-                            .get("id")
-                            .and_then(|id| id.as_str())
-                            .map(String::from),
+                        id: request_id,
                     }));
                 }
             };
 
-            match server.manager.process_render_request(params) {
-                Ok(response) => Ok(json(&RpcResponse {
-                    result: Some(response),
-                    error: None,
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-                Err(e) => Ok(json(&RpcResponse::<()> {
-                    result: None,
-                    error: Some(format!("Error rendering SVG: {}", e)),
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-            }
+            Ok(handle_render_svg(params, &server, request_id).await)
         }
         Method::GetBitmap => {
             let params: GetBitmapRequest = match serde_json::from_value(
@@ -149,32 +265,12 @@ async fn handle_rpc(
                     return Ok(json(&RpcResponse::<()> {
                         result: None,
                         error: Some(format!("Invalid parameters: {}", e)),
-                        id: request
-                            .get("id")
-                            .and_then(|id| id.as_str())
-                            .map(String::from),
+                        id: request_id,
                     }));
                 }
             };
 
-            match server.manager.process_get_bitmap_request(params) {
-                Ok(response) => Ok(json(&RpcResponse {
-                    result: Some(response),
-                    error: None,
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-                Err(e) => Ok(json(&RpcResponse::<()> {
-                    result: None,
-                    error: Some(format!("Error getting bitmap: {}", e)),
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-            }
+            Ok(handle_get_bitmap(params, &server, request_id).await)
         }
         Method::Paint => {
             let params: PaintParams = match serde_json::from_value(
@@ -188,39 +284,31 @@ async fn handle_rpc(
                     return Ok(json(&RpcResponse::<()> {
                         result: None,
                         error: Some(format!("Invalid parameters: {}", e)),
-                        id: request
-                            .get("id")
-                            .and_then(|id| id.as_str())
-                            .map(String::from),
+                        id: request_id,
                     }));
                 }
             };
 
-            // Create a response type for Paint
-            #[derive(Serialize)]
-            struct PaintResult {
-                svg: String,
-            }
+            Ok(handle_paint(params, &server, request_id).await)
+        }
+        Method::RenderToBitmap => {
+            let params: RenderToBitmapParams = match serde_json::from_value(
+                request
+                    .get("params")
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null),
+            ) {
+                Ok(p) => p,
+                Err(e) => {
+                    return Ok(json(&RpcResponse::<()> {
+                        result: None,
+                        error: Some(format!("Invalid parameters: {}", e)),
+                        id: request_id,
+                    }));
+                }
+            };
 
-            // Call the painter
-            match server.painter.paint(params).await {
-                Ok(svg) => Ok(json(&RpcResponse {
-                    result: Some(PaintResult { svg }),
-                    error: None,
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-                Err(e) => Ok(json(&RpcResponse::<()> {
-                    result: None,
-                    error: Some(format!("Error painting: {}", e)),
-                    id: request
-                        .get("id")
-                        .and_then(|id| id.as_str())
-                        .map(String::from),
-                })),
-            }
+            Ok(handle_render_to_bitmap(params, &server, request_id).await)
         }
     }
 }

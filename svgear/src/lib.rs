@@ -10,7 +10,7 @@ pub use manager::{
     SvgManager,
 };
 pub use painter::{Painter, PaintParams, PaintType};
-pub use rpc::{Method, RpcRequest, RpcResponse, RpcServer};
+pub use rpc::{Method, PaintResult, RenderToBitmapParams, RpcRequest, RpcResponse, RpcServer};
 
 pub async fn run_server(port: u16) -> anyhow::Result<()> {
     let manager = SharedSvgManager::new();
