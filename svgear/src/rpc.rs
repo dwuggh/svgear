@@ -1,5 +1,5 @@
 use crate::manager::{GetBitmapRequest, RenderRequest, SharedSvgManager};
-use crate::painter::{Painter, PaintParams};
+use crate::painter::{PaintParams, Painter};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -74,7 +74,6 @@ impl RpcServer {
             .and(with_manager(self.clone()))
             .and_then(handle_rpc);
 
-
         println!("Starting RPC server on port {}", port);
         warp::serve(render_route).run(([127, 0, 0, 1], port)).await;
 
@@ -130,11 +129,7 @@ async fn handle_get_bitmap(
 }
 
 /// Handle Paint requests
-async fn handle_paint(
-    params: PaintParams,
-    server: &RpcServer,
-    request_id: Option<String>,
-) -> Json {
+async fn handle_paint(params: PaintParams, server: &RpcServer, request_id: Option<String>) -> Json {
     match server.painter.paint(params).await {
         Ok(svg) => json(&RpcResponse {
             result: Some(PaintResult { svg }),
@@ -182,7 +177,10 @@ async fn handle_render_to_bitmap(
                 id: render_response.id,
             };
 
-            match server.manager.process_get_bitmap_request(get_bitmap_request) {
+            match server
+                .manager
+                .process_get_bitmap_request(get_bitmap_request)
+            {
                 Ok(bitmap_response) => json(&RpcResponse {
                     result: Some(bitmap_response),
                     error: None,

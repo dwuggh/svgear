@@ -11,7 +11,7 @@ use super::{PaintParams, PaintType};
 #[derive(Debug, Serialize, Deserialize)]
 struct NodeRequest {
     /// The type of content to render
-    #[serde(rename="method")]
+    #[serde(rename = "method")]
     ty: String,
     /// Whether the equation is inline or display mode (for MathJax)
     inline: bool,
@@ -54,11 +54,11 @@ impl NodeServer {
             process: Arc::new(AsyncMutex::new(None)),
         }
     }
-    
+
     /// Start the Node.js server process if not already running
     async fn ensure_process_started(&self) -> Result<()> {
         let mut process_guard = self.process.lock().await;
-        
+
         if process_guard.is_none() {
             // Start the Node.js process with stdio mode
             let mut child = Command::new(&self.script_path)
@@ -69,29 +69,31 @@ impl NodeServer {
                 .spawn()
                 .context("Failed to start Node.js server process")?;
 
-            
             // Read initial stderr output to confirm process started
             if let Some(stderr) = child.stderr.take() {
                 let mut reader = BufReader::new(stderr);
                 let mut line = String::new();
-                
+
                 // Read the first line which should contain startup message
                 if reader.read_line(&mut line).is_ok() {
                     if !line.contains("Running in stdio mode") {
-                        return Err(anyhow::anyhow!("Unexpected output from Node.js server: {}", line));
+                        return Err(anyhow::anyhow!(
+                            "Unexpected output from Node.js server: {}",
+                            line
+                        ));
                     }
                 }
-                
+
                 // Put stderr back
                 child.stderr = Some(reader.into_inner());
             }
-            
+
             *process_guard = Some(ChildProcess { child });
         }
-        
+
         Ok(())
     }
-    
+
     /// Paint content to SVG
     pub async fn paint(&self, params: PaintParams) -> Result<String> {
         // Create the request based on the paint type
@@ -115,51 +117,57 @@ impl NodeServer {
 
         // Ensure the process is started
         self.ensure_process_started().await?;
-        
+
         // Get a lock on the process
         let mut process_guard = self.process.lock().await;
-        let process = process_guard.as_mut()
+        let process = process_guard
+            .as_mut()
             .ok_or_else(|| anyhow::anyhow!("Node.js server process not started"))?;
-        
+
         // Get stdin and stdout handles
-        let stdin = process.child.stdin.as_mut()
+        let stdin = process
+            .child
+            .stdin
+            .as_mut()
             .ok_or_else(|| anyhow::anyhow!("Failed to get stdin handle"))?;
-        let stdout = process.child.stdout.as_mut()
+        let stdout = process
+            .child
+            .stdout
+            .as_mut()
             .ok_or_else(|| anyhow::anyhow!("Failed to get stdout handle"))?;
-        
+
         // Serialize the request to JSON and send it
-        let request_json = serde_json::to_string(&request)
-            .context("Failed to serialize Node.js request")?;
-        
+        let request_json =
+            serde_json::to_string(&request).context("Failed to serialize Node.js request")?;
+
         // Write the request to stdin
-        stdin.write_all(request_json.as_bytes())
+        stdin
+            .write_all(request_json.as_bytes())
             .context("Failed to write to Node.js server stdin")?;
-        stdin.write_all(b"\n")
+        stdin
+            .write_all(b"\n")
             .context("Failed to write newline to Node.js server stdin")?;
-        stdin.flush()
+        stdin
+            .flush()
             .context("Failed to flush Node.js server stdin")?;
-        
+
         // Read the response from stdout
         let mut reader = BufReader::new(stdout);
+
         // let mut response = String::new();
-        // reader.read_to_string(&mut response)
+        // reader.read_line(&mut response)
         //     .context("Failed to read from Node.js server stdout")?;
         let mut buf = vec![0; 1024 * 1024];
-        reader.read(&mut buf)?;
-        let response = String::from_utf8(buf)?;
-        // println!("{response}");
-        
+        let bytes_read = reader.read(&mut buf)?;
+        let mut string_bytes = Vec::with_capacity(bytes_read);
+        string_bytes.extend_from_slice(&buf[..bytes_read]);
+        let response = String::from_utf8(string_bytes)?;
+        println!("{response}");
+
         // Trim any whitespace
         let svg_content = response.trim().to_string();
-        
+
         // Return the SVG content
         Ok(svg_content)
     }
 }
-
-
-
-
-
-
-

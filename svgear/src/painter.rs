@@ -15,7 +15,7 @@ pub struct PaintParams {
 pub enum PaintType {
     InlineTeX,
     Equation,
-    Mermaid
+    Mermaid,
 }
 
 /// A painter that can render different types of content to SVG
@@ -27,9 +27,7 @@ pub struct Painter {
 impl Painter {
     /// Create a new painter
     pub fn new() -> Self {
-        Painter {
-            node_server: None,
-        }
+        Painter { node_server: None }
     }
 
     /// Create a new painter with a Node server
@@ -46,8 +44,10 @@ impl Painter {
 
     /// Paint content to SVG
     pub async fn paint(&self, params: PaintParams) -> Result<String> {
-        self.node_server.as_ref()
+        self.node_server
+            .as_ref()
             .ok_or(anyhow::anyhow!("No Node server configured"))?
-            .paint(params).await
+            .paint(params)
+            .await
     }
 }

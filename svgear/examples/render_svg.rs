@@ -55,7 +55,10 @@ async fn main() -> Result<()> {
             .save_bitmap(&response.id, cli.output.to_str().unwrap())
             .await?;
 
-        println!("Done! Image size: {}x{}", response.bitmap.width, response.bitmap.height);
+        println!(
+            "Done! Image size: {}x{}",
+            response.bitmap.width, response.bitmap.height
+        );
     }
 
     Ok(())

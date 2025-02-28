@@ -9,7 +9,7 @@ pub use manager::{
     GetBitmapRequest, GetBitmapResponse, RenderRequest, RenderResponse, SharedSvgManager,
     SvgManager,
 };
-pub use painter::{Painter, PaintParams, PaintType};
+pub use painter::{PaintParams, PaintType, Painter};
 pub use rpc::{Method, PaintResult, RenderToBitmapParams, RpcRequest, RpcResponse, RpcServer};
 
 pub async fn run_server(port: u16, exe_path: String) -> anyhow::Result<()> {
@@ -23,10 +23,3 @@ pub async fn run_cli() -> anyhow::Result<()> {
     // Implement CLI logic here
     Ok(())
 }
-
-
-
-
-
-
-

@@ -111,11 +111,7 @@ impl SvgManager {
 
         // Parse the SVG
         let opt = usvg::Options::default();
-        log::trace!("{svg_data}");
-        {
-            let lines: Vec<_> = svg_data.lines().enumerate().collect(); 
-            log::trace!("{lines:?}");
-        }
+        // log::trace!("{svg_data}");
         let tree = match usvg::Tree::from_str(svg_data, &opt) {
             Ok(tree) => {
                 log::trace!("SVG validation successful for id: {}", id);
@@ -142,13 +138,20 @@ impl SvgManager {
             }
             (None, None) => (orig_size.width() as u32, orig_size.height() as u32),
         };
+        log::trace!(
+            "calculated ({target_width}, {target_height}) from ({width:?}, {height:?}) with {orig_size:?}"
+        );
 
         // Create a pixmap with the target size
         let mut pixmap = tiny_skia::Pixmap::new(target_width, target_height)
             .ok_or_else(|| anyhow::anyhow!("Failed to create pixmap"))?;
 
+        let transform = usvg::Transform::from_scale(
+            target_width as f32 / orig_size.width(),
+            target_height as f32 / orig_size.height(),
+        );
         // Render the SVG
-        resvg::render(&tree, usvg::Transform::identity(), &mut pixmap.as_mut());
+        resvg::render(&tree, transform, &mut pixmap.as_mut());
 
         // Convert to PNG
         let png_data = pixmap.encode_png()?;
