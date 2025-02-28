@@ -185,7 +185,7 @@ impl SvgManager {
             id,
             cached,
             bitmap: Bitmap {
-                 bitmap.data.clone(),
+                data: bitmap.data.clone(),
                 width: bitmap.width,
                 height: bitmap.height,
             },

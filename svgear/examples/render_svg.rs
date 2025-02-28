@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
-use svgear::{RpcServer, SharedSvgManager, SvgClient};
+use svgear::{Painter, RpcServer, SharedSvgManager, SvgClient};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -39,7 +39,8 @@ async fn main() -> Result<()> {
         // Start the server
         println!("Starting SVG rendering server on port {}", cli.port);
         let manager = SharedSvgManager::new();
-        let server = RpcServer::new(manager);
+        let painter = Painter::new();
+        let server = RpcServer::new(manager, painter);
         server.start(cli.port).await?;
     } else {
         // Use the client to render an SVG
@@ -54,7 +55,7 @@ async fn main() -> Result<()> {
             .save_bitmap(&response.id, cli.output.to_str().unwrap())
             .await?;
 
-        println!("Done! Image size: {}x{}", response.width, response.height);
+        println!("Done! Image size: {}x{}", response.bitmap.width, response.bitmap.height);
     }
 
     Ok(())
