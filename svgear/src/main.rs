@@ -1,7 +1,9 @@
+use std::io::Write;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use svgear::painter::{MathjaxServer, Mermaid};
-use svgear::Painter;
+use svgear::{PaintType, Painter, RenderRequest, SharedSvgManager};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -13,36 +15,53 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Generate SVG from MathJax
-    Math {
-        /// Input file path
-        #[arg(short, long)]
+    Render {
+        /// input content
         input: String,
-    },
-    /// Generate SVG from Mermaid
-    Mermaid {
-        /// Input
         #[arg(short, long)]
-        input: String,
+        ty: String,
+        #[arg(short, long)]
+        width: Option<u32>,
+        #[arg(short, long)]
+        height: Option<u32>,
     },
     /// Run in server mode
-    Server,
+    Serve,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    match &cli.command {
-        Commands::Math { input } => {
+    match cli.command {
+        Commands::Render { input, ty, width, height } => {
+            match ty.as_str() {
+                "svg" => {
+                    let mut manager = svgear::SvgManager::new();
+                    let resp = manager.process_render_request(RenderRequest {
+                        svg_data: input,
+                        width,
+                        height,
+                        id: None,
+                    })?;
+                    use std::io::Write;
+                    let mut stdout = std::io::stdout();
+                    stdout.write(&resp.bitmap.data)?;
+                }
+                _ => (),
+            }
             todo!()
         }
-        Commands::Mermaid { input } => {
-            todo!()
-        }
-        Commands::Server => {
+        Commands::Serve => {
             svgear::run_server(3000).await?;
         }
     }
 
     Ok(())
 }
+
+
+
+
+
+

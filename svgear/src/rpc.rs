@@ -169,7 +169,7 @@ async fn handle_render_to_bitmap(
 
     // Step 2: Render SVG to bitmap
     let render_request = RenderRequest {
-        svg_ paint_result,
+        svg_data: paint_result,
         width: params.width,
         height: params.height,
         id: None,
