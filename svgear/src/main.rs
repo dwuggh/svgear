@@ -12,6 +12,8 @@ use svgear::{PaintType, Painter, RenderRequest, SharedSvgManager};
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+    #[arg(short, long)]
+    exe_path: String,
 }
 
 #[derive(Subcommand)]
@@ -96,7 +98,7 @@ enum Commands {
                  },
                  "mermaid" | "inlinetex" | "equation" => {
                      // Create a painter with MathJax server
-                     let mathjax = MathjaxServer::new("localhost".to_string(), 3001);
+                     let mathjax = MathjaxServer::new(cli.exe_path);
                      let mermaid = Mermaid::new();
                      let painter = Painter::new();
 
@@ -155,15 +157,9 @@ enum Commands {
              }
          },
          Commands::Serve { port } => {
-             svgear::run_server(port).await?;
+             svgear::run_server(port, cli.exe_path).await?;
          }
      }
 
      Ok(())
  }
-
-
-
-
-
-

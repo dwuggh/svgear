@@ -89,19 +89,6 @@ function generateId() {
   return Math.random().toString(36).substring(2, 15);
 }
 
-// Process a MathJax request in the format {inline: boolean, content: string}
-async function processMathJaxRequest(request) {
-  if (request.content === undefined) {
-    throw new Error('Content is required');
-  }
-  
-  if (request.inline === undefined) {
-    throw new Error('Inline flag is required');
-  }
-  
-  return await convertEquation(request.content, 'TeX', request.inline);
-}
-
 // Run in stdio mode
 async function runStdioMode() {
   console.error('Running in stdio mode');
