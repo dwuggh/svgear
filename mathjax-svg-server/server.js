@@ -43,7 +43,7 @@ const argv = yargs(hideBin(process.argv))
         type: 'string',
       });
   })
-  .command('stdio', 'Run in JSON-RPC mode over stdio', () => {})
+  .command('stdio', 'Run over stdio', () => {})
   .demandCommand(1, 'You must specify a command: serve, convert, or stdio')
   .help()
   .argv;
@@ -71,74 +71,35 @@ async function convertEquation(equation, format, inline = false) {
 }
 
 // Handle JSON-RPC style requests
-async function handleJsonRpcRequest(request) {
-  const { id, method, params } = request;
-  
-  let result = null;
-  let error = null;
-  
-  try {
-    switch (method) {
-      case 'Paint':
-        if (!params.content) {
-          throw new Error('Content parameter is required');
-        }
-        
-        const format = params.format || 'TeX';
-        if (!allowedFormats.includes(format)) {
-          throw new Error(`Invalid format. Supported formats: ${allowedFormats.join(', ')}`);
-        }
-        
-        const svg = await convertEquation(params.content, format);
-        result = { svg };
-        break;
-        
-      case 'RenderToBitmap':
-        if (!params.paint_params || !params.paint_params.content) {
-          throw new Error('paint_params.content is required');
-        }
-        
-        const paintFormat = params.paint_params.format || 'TeX';
-        if (!allowedFormats.includes(paintFormat)) {
-          throw new Error(`Invalid format. Supported formats: ${allowedFormats.join(', ')}`);
-        }
-        
-        // First convert to SVG
-        const svgContent = await convertEquation(params.paint_params.content, paintFormat);
-        
-        // We don't actually render to bitmap here, just return the SVG
-        // This is a placeholder for compatibility with the Rust API
-        result = {
-          id: generateId(),
-          bitmap: {
-            data: Buffer.from(svgContent).toString('base64'),
-            width: params.width || 800,
-            height: params.height || 600
-          }
-        };
-        break;
-        
-      default:
-        throw new Error(`Unknown method: ${method}`);
-    }
-  } catch (e) {
-    error = {
-      code: -32000,
-      message: e.message
-    };
+// Process a MathJax request in the format {inline: boolean, content: string}
+async function processMathJaxRequest(request) {
+  if (request.content === undefined) {
+    throw new Error('Content is required');
   }
-  
-  return {
-    jsonrpc: '2.0',
-    id,
-    result,
-    error
-  };
+
+  if (request.inline === undefined) {
+    throw new Error('Inline flag is required');
+  }
+
+  return await convertEquation(request.content, 'TeX', request.inline);
 }
 
 // Generate a simple ID for SVGs
 function generateId() {
   return Math.random().toString(36).substring(2, 15);
+}
+
+// Process a MathJax request in the format {inline: boolean, content: string}
+async function processMathJaxRequest(request) {
+  if (request.content === undefined) {
+    throw new Error('Content is required');
+  }
+  
+  if (request.inline === undefined) {
+    throw new Error('Inline flag is required');
+  }
+  
+  return await convertEquation(request.content, 'TeX', request.inline);
 }
 
 // Run in stdio mode
@@ -195,23 +156,6 @@ async function runServer(port) {
       res.send(svg);
     } catch (error) {
       res.status(500).json({ error: 'Internal Server Error', details: error.message });
-    }
-  });
-
-  // New RPC endpoint that matches the Rust API
-  app.post('/rpc', async (req, res) => {
-    try {
-      const response = await handleJsonRpcRequest(req.body);
-      res.json(response);
-    } catch (error) {
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: {
-          code: -32000,
-          message: error.message
-        },
-        id: req.body.id
-      });
     }
   });
 
