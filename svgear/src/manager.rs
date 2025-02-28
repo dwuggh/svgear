@@ -28,10 +28,8 @@ pub struct RenderResponse {
     pub id: String,
     /// Whether the SVG was newly rendered or retrieved from cache
     pub cached: bool,
-    /// Width of the rendered bitmap
-    pub width: u32,
-    /// Height of the rendered bitmap
-    pub height: u32,
+    /// The bitmap data and dimensions
+    pub bitmap: Bitmap,
 }
 
 /// Represents a request to retrieve a rendered bitmap
@@ -178,11 +176,19 @@ impl SvgManager {
         // Render the SVG
         let (width, height) = self.render_svg(&id, request.width, request.height)?;
 
+        // Get the bitmap
+        let bitmap = self
+            .get_bitmap(&id)
+            .ok_or_else(|| anyhow::anyhow!("Bitmap not found after rendering"))?;
+
         Ok(RenderResponse {
             id,
             cached,
-            width,
-            height,
+            bitmap: Bitmap {
+                 bitmap.data.clone(),
+                width: bitmap.width,
+                height: bitmap.height,
+            },
         })
     }
 
