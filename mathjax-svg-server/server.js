@@ -78,9 +78,9 @@ async function handleJsonRpcRequest(request) {
   
   try {
     switch (method) {
-      case 'convert':
-        if (!params.equation) {
-          throw new Error('Equation parameter is required');
+      case 'Paint':
+        if (!params.content) {
+          throw new Error('Content parameter is required');
         }
         
         const format = params.format || 'TeX';
@@ -88,7 +88,33 @@ async function handleJsonRpcRequest(request) {
           throw new Error(`Invalid format. Supported formats: ${allowedFormats.join(', ')}`);
         }
         
-        result = await convertEquation(params.equation, format);
+        const svg = await convertEquation(params.content, format);
+        result = { svg };
+        break;
+        
+      case 'RenderToBitmap':
+        if (!params.paint_params || !params.paint_params.content) {
+          throw new Error('paint_params.content is required');
+        }
+        
+        const paintFormat = params.paint_params.format || 'TeX';
+        if (!allowedFormats.includes(paintFormat)) {
+          throw new Error(`Invalid format. Supported formats: ${allowedFormats.join(', ')}`);
+        }
+        
+        // First convert to SVG
+        const svgContent = await convertEquation(params.paint_params.content, paintFormat);
+        
+        // We don't actually render to bitmap here, just return the SVG
+        // This is a placeholder for compatibility with the Rust API
+        result = {
+          id: generateId(),
+          bitmap: {
+            data: Buffer.from(svgContent).toString('base64'),
+            width: params.width || 800,
+            height: params.height || 600
+          }
+        };
         break;
         
       default:
@@ -109,10 +135,16 @@ async function handleJsonRpcRequest(request) {
   };
 }
 
+// Generate a simple ID for SVGs
+function generateId() {
+  return Math.random().toString(36).substring(2, 15);
+}
+
 // Run in stdio JSON-RPC mode
 async function runStdioMode() {
   console.error('Running in JSON-RPC mode over stdio');
   console.error('Send JSON-RPC requests, one per line');
+  console.error('Supported methods: Paint, RenderToBitmap');
   
   const rl = createInterface({
     input: process.stdin,
@@ -151,6 +183,7 @@ async function runServer(port) {
   const app = express();
   app.use(express.json());
 
+  // Legacy endpoint for backward compatibility
   app.post('/convert', async (req, res) => {
     const { equation, format } = req.body;
 
@@ -171,6 +204,23 @@ async function runServer(port) {
     }
   });
 
+  // New RPC endpoint that matches the Rust API
+  app.post('/rpc', async (req, res) => {
+    try {
+      const response = await handleJsonRpcRequest(req.body);
+      res.json(response);
+    } catch (error) {
+      res.status(500).json({
+        jsonrpc: '2.0',
+        error: {
+          code: -32000,
+          message: error.message
+        },
+        id: req.body.id
+      });
+    }
+  });
+
   // Global Error Handler
   app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -179,6 +229,7 @@ async function runServer(port) {
 
   app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
+    console.log(`RPC endpoint available at http://localhost:${port}/rpc`);
   });
 }
 
