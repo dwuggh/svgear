@@ -14,7 +14,7 @@ pub use rpc::{Method, PaintResult, RenderToBitmapParams, RpcRequest, RpcResponse
 
 pub async fn run_server(port: u16, exe_path: String) -> anyhow::Result<()> {
     let manager = SharedSvgManager::new();
-    let painter = Painter::with_mathjax(exe_path);
+    let painter = Painter::with_node_server(exe_path);
     let server = RpcServer::new(manager, painter);
     server.start(port).await
 }

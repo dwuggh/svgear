@@ -81,7 +81,37 @@ async function processMathJaxRequest(request) {
     throw new Error('Inline flag is required');
   }
 
-  return await convertEquation(request.content, 'TeX', request.inline);
+  // const format = inline ? "Inline" : "Equation";
+  const format = 'TeX';
+
+  return await convertEquation(request.content, format, request.inline);
+}
+
+async function convertMermaidGraph(content) {
+  try {
+    const data = await mjAPI.typeset({
+      math: content,
+      svg: true,
+      display: !inline, // Use display mode when not inline
+    });
+
+    if (!data.errors) {
+      return data.svg;
+    } else {
+      throw new Error(`MathJax error: ${data.errors.join(', ')}`);
+    }
+  } catch (error) {
+    console.error("Error during MathJax processing:", error);
+    throw error; // Re-throw to handle in caller
+  }
+}
+
+async function processMermaidRequest(request) {
+  if (request.content === undefined) {
+    throw new Error('Content is required');
+  }
+
+  return await convertMermaidGraph(request.content);
 }
 
 // Generate a simple ID for SVGs
@@ -92,7 +122,7 @@ function generateId() {
 // Run in stdio mode
 async function runStdioMode() {
   console.error('Running in stdio mode');
-  console.error('Send requests in format: {inline: boolean, content: string}');
+  console.error('Send requests in format: {method: string, inline: boolean, content: string}');
   
   const rl = createInterface({
     input: process.stdin,
@@ -103,10 +133,16 @@ async function runStdioMode() {
   rl.on('line', async (line) => {
     try {
       const request = JSON.parse(line);
-      const svg = await processMathJaxRequest(request);
+      let method = request.method;
+      if (method == "mathjax") {
+        const svg = await processMathJaxRequest(request);
+        // Send SVG as response
+        console.log(svg);
+      } else if (method == "mermaid") {
+      } else {
+        console.error("wrong method");
+      }
       
-      // Send SVG as response
-      console.log(svg);
     } catch (e) {
       // Handle errors
       console.error(`Error: ${e.message}`);

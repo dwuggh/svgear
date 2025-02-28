@@ -111,7 +111,20 @@ impl SvgManager {
 
         // Parse the SVG
         let opt = usvg::Options::default();
-        let tree = Tree::from_str(svg_data, &opt)?;
+        log::trace!("{svg_data}");
+        {
+            let lines: Vec<_> = svg_data.lines().enumerate().collect(); 
+            log::trace!("{lines:?}");
+        }
+        let tree = match usvg::Tree::from_str(svg_data, &opt) {
+            Ok(tree) => {
+                log::trace!("SVG validation successful for id: {}", id);
+                tree
+            }
+            Err(e) => {
+                return Err(anyhow::anyhow!("Failed to parse SVG: {}", e));
+            }
+        };
 
         // Get original size
         let orig_size = tree.size();

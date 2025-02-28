@@ -4,7 +4,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use svgear::painter::{MathjaxServer, Mermaid, PaintParams};
+use svgear::painter::{NodeServer, PaintParams};
 use svgear::{PaintType, Painter, RenderRequest, SharedSvgManager};
 
 #[derive(Parser)]
@@ -18,19 +18,20 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Generate SVG from MathJax
+    /// Generate SVG from MathJax or mermaid
     Render {
         /// input content
         input: String,
-        #[arg(short, long)]
+        #[arg(short, long, default_value="inlinetex")]
         input_type: String,
-        #[arg(short, long)]
+        #[arg(short = 'o', long, default_value="svg")]
         output_type: String,
-        #[arg(short, long)]
+        #[arg(long)]
         width: Option<u32>,
-        #[arg(short, long)]
+        #[arg(long)]
         height: Option<u32>,
-        #[arg(short, long)]
+        /// file location for output
+        #[arg(short = 'O', long)]
         output: Option<String>,
     },
     /// Run in server mode
@@ -53,6 +54,7 @@ enum Commands {
 
  #[tokio::main]
  async fn main() -> Result<()> {
+     env_logger::init();
      let cli = Cli::parse();
 
      match cli.command {
@@ -98,9 +100,8 @@ enum Commands {
                  },
                  "mermaid" | "inlinetex" | "equation" => {
                      // Create a painter with MathJax server
-                     let mathjax = MathjaxServer::new(cli.exe_path);
-                     let mermaid = Mermaid::new();
-                     let painter = Painter::new();
+                     // let node_server = NodeServer::new(cli.exe_path);
+                     let painter = Painter::with_node_server(cli.exe_path);
 
                      // Determine paint type
                      let paint_type = match input_type.as_str() {

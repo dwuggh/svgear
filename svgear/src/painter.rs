@@ -2,7 +2,6 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 mod node_server;
-mod mermaid;
 
 pub use node_server::NodeServer;
 
@@ -52,16 +51,3 @@ impl Painter {
             .paint(params).await
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

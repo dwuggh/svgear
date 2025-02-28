@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use tokio::sync::Mutex as AsyncMutex;
@@ -11,6 +11,7 @@ use super::{PaintParams, PaintType};
 #[derive(Debug, Serialize, Deserialize)]
 struct NodeRequest {
     /// The type of content to render
+    #[serde(rename="method")]
     ty: String,
     /// Whether the equation is inline or display mode (for MathJax)
     inline: bool,
@@ -60,8 +61,7 @@ impl NodeServer {
         
         if process_guard.is_none() {
             // Start the Node.js process with stdio mode
-            let mut child = Command::new("node")
-                .arg(&self.script_path)
+            let mut child = Command::new(&self.script_path)
                 .arg("stdio")
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
@@ -141,9 +141,13 @@ impl NodeServer {
         
         // Read the response from stdout
         let mut reader = BufReader::new(stdout);
-        let mut response = String::new();
-        reader.read_line(&mut response)
-            .context("Failed to read from Node.js server stdout")?;
+        // let mut response = String::new();
+        // reader.read_to_string(&mut response)
+        //     .context("Failed to read from Node.js server stdout")?;
+        let mut buf = vec![0; 1024 * 1024];
+        reader.read(&mut buf)?;
+        let response = String::from_utf8(buf)?;
+        // println!("{response}");
         
         // Trim any whitespace
         let svg_content = response.trim().to_string();
@@ -152,3 +156,10 @@ impl NodeServer {
         Ok(svg_content)
     }
 }
+
+
+
+
+
+
+
