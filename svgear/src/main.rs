@@ -19,11 +19,15 @@ enum Commands {
         /// input content
         input: String,
         #[arg(short, long)]
-        ty: String,
+        input_type: String,
+        #[arg(short, long)]
+        output_type: String,
         #[arg(short, long)]
         width: Option<u32>,
         #[arg(short, long)]
         height: Option<u32>,
+        #[arg(short, long)]
+        output: String,
     },
     /// Run in server mode
     Serve,
@@ -34,8 +38,8 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Render { input, ty, width, height } => {
-            match ty.as_str() {
+        Commands::Render { input, input_type, output_type, width, height, output } => {
+            match input_type.as_str() {
                 "svg" => {
                     let mut manager = svgear::SvgManager::new();
                     let resp = manager.process_render_request(RenderRequest {
