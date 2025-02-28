@@ -133,8 +133,7 @@ async function runStdioMode() {
         jsonrpc: '2.0',
         error: {
           code: -32700,
-          message: 'Parse error',
-           e.message
+          message: `Parse error: ${e.message}`
         },
         id: null
       }));
