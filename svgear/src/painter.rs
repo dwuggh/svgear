@@ -1,10 +1,10 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-mod mathjax_server;
+mod node_server;
 mod mermaid;
 
-pub use mathjax_server::MathjaxServer;
+pub use node_server::NodeServer;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaintParams {
@@ -22,32 +22,34 @@ pub enum PaintType {
 /// A painter that can render different types of content to SVG
 #[derive(Clone)]
 pub struct Painter {
-    mathjax: Option<MathjaxServer>,
+    node_server: Option<NodeServer>,
 }
 
 impl Painter {
     /// Create a new painter
     pub fn new() -> Self {
         Painter {
-            mathjax: None,
+            node_server: None,
         }
     }
 
-    /// Create a new painter with a MathJax server
-    pub fn with_mathjax(exe_path: String) -> Self {
+    /// Create a new painter with a Node server
+    pub fn with_node_server(exe_path: String) -> Self {
         let mut painter = Self::new();
-        painter.mathjax = Some(MathjaxServer::new(exe_path));
+        painter.node_server = Some(NodeServer::new(exe_path));
         painter
     }
 
-    /// Set the MathJax server
-    pub fn set_mathjax(&mut self, server: MathjaxServer) {
-        self.mathjax = Some(server);
+    /// Set the Node server
+    pub fn set_node_server(&mut self, server: NodeServer) {
+        self.node_server = Some(server);
     }
 
     /// Paint content to SVG
     pub async fn paint(&self, params: PaintParams) -> Result<String> {
-        self.mathjax.ok_or(anyhow::anyhow!("no node server"))?.paint(params).await
+        self.node_server.as_ref()
+            .ok_or(anyhow::anyhow!("No Node server configured"))?
+            .paint(params).await
     }
 }
 
