@@ -50,12 +50,13 @@ const argv = yargs(hideBin(process.argv))
 
 // --- Main Logic ---
 
-async function convertEquation(equation, format) {
+async function convertEquation(equation, format, inline = false) {
   try {
     const data = await mjAPI.typeset({
       math: equation,
       format: format,
       svg: true,
+      display: !inline, // Use display mode when not inline
     });
 
     if (!data.errors) {
@@ -140,11 +141,10 @@ function generateId() {
   return Math.random().toString(36).substring(2, 15);
 }
 
-// Run in stdio JSON-RPC mode
+// Run in stdio mode
 async function runStdioMode() {
-  console.error('Running in JSON-RPC mode over stdio');
-  console.error('Send JSON-RPC requests, one per line');
-  console.error('Supported methods: Paint, RenderToBitmap');
+  console.error('Running in stdio mode');
+  console.error('Send requests in format: {inline: boolean, content: string}');
   
   const rl = createInterface({
     input: process.stdin,
@@ -155,20 +155,14 @@ async function runStdioMode() {
   rl.on('line', async (line) => {
     try {
       const request = JSON.parse(line);
-      const response = await handleJsonRpcRequest(request);
+      const svg = await processMathJaxRequest(request);
       
-      // Send response as JSON
-      console.log(JSON.stringify(response));
+      // Send SVG as response
+      console.log(svg);
     } catch (e) {
-      // Handle JSON parse errors
-      console.log(JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32700,
-          message: `Parse error: ${e.message}`
-        },
-        id: null
-      }));
+      // Handle errors
+      console.error(`Error: ${e.message}`);
+      process.exit(1);
     }
   });
   
