@@ -1,3 +1,4 @@
 [submodule "emacs-module-rs"]
 path = emacs-module-rs
-url = https://github.com/ubolonton/emacs-module-rs.git
+url = git@github.com:dwuggh/emacs-module-rs.git
+branch = dev
