@@ -390,16 +390,39 @@ dependencies = [
 [[package]]
 name = "emacs"
 version = "0.19.0"
+dependencies = [
+ "anyhow",
+ "ctor",
+ "emacs-macros 0.17.0",
+ "emacs_module 0.18.0",
+ "once_cell",
+ "rustc_version",
+ "thiserror",
+]
+
+[[package]]
+name = "emacs"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a773f2eeb842fea9f9e52f8360dbf7c0c54af0c904e025c9e08db5053b8718c"
 dependencies = [
  "anyhow",
  "ctor",
- "emacs-macros",
- "emacs_module",
+ "emacs-macros 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "emacs_module 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "once_cell",
  "rustc_version",
  "thiserror",
+]
+
+[[package]]
+name = "emacs-macros"
+version = "0.17.0"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -413,6 +436,19 @@ dependencies = [
  "quote",
  "syn 1.0.109",
 ]
+
+[[package]]
+name = "emacs-rs-module"
+version = "0.19.0"
+dependencies = [
+ "emacs 0.19.0",
+ "lazy_static",
+ "libloading",
+]
+
+[[package]]
+name = "emacs_module"
+version = "0.18.0"
 
 [[package]]
 name = "emacs_module"
@@ -1005,10 +1041,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "lazy_static"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+
+[[package]]
 name = "libc"
 version = "0.2.170"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "875b3680cb2f8f71bdcf9a30f38d48282f5d3c95cbf9b3fa57269bb5d5c06828"
+
+[[package]]
+name = "libloading"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b111a074963af1d37a139918ac6d49ad1d0d5e47f72fd55388619691a7d753"
+dependencies = [
+ "cc",
+ "winapi",
+]
 
 [[package]]
 name = "libm"
@@ -1760,7 +1812,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
- "emacs",
+ "emacs 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger",
  "fxhash",
  "log",
@@ -1775,6 +1827,20 @@ dependencies = [
  "tokio",
  "uuid",
  "warp",
+]
+
+[[package]]
+name = "svgear_emacs"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "emacs 0.19.0",
+ "emacs-macros 0.17.0",
+ "emacs-rs-module",
+ "emacs_module 0.18.0",
+ "log",
+ "svgear",
+ "tempfile",
 ]
 
 [[package]]
@@ -2357,6 +2423,28 @@ name = "weezl"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
+
+[[package]]
+name = "winapi"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
+dependencies = [
+ "winapi-i686-pc-windows-gnu",
+ "winapi-x86_64-pc-windows-gnu",
+]
+
+[[package]]
+name = "winapi-i686-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
+
+[[package]]
+name = "winapi-x86_64-pc-windows-gnu"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "windows-sys"

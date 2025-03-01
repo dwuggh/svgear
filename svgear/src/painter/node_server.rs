@@ -162,7 +162,6 @@ impl NodeServer {
         let mut string_bytes = Vec::with_capacity(bytes_read);
         string_bytes.extend_from_slice(&buf[..bytes_read]);
         let response = String::from_utf8(string_bytes)?;
-        println!("{response}");
 
         // Trim any whitespace
         let svg_content = response.trim().to_string();

@@ -19,7 +19,7 @@ pub enum PaintType {
 }
 
 /// A painter that can render different types of content to SVG
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Painter {
     node_server: Option<NodeServer>,
 }

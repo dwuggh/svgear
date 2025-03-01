@@ -4,6 +4,8 @@ pub mod manager;
 pub mod painter;
 pub mod rpc;
 
+use std::sync::Arc;
+
 pub use client::SvgClient;
 pub use manager::{
     GetBitmapRequest, GetBitmapResponse, RenderRequest, RenderResponse, SharedSvgManager,
@@ -11,15 +13,25 @@ pub use manager::{
 };
 pub use painter::{PaintParams, PaintType, Painter};
 pub use rpc::{Method, PaintResult, RenderToBitmapParams, RpcRequest, RpcResponse, RpcServer};
+use tokio::{
+    runtime::{Builder, Runtime},
+    sync::RwLock,
+};
+pub use tokio;
 
-pub async fn run_server(port: u16, exe_path: String) -> anyhow::Result<()> {
-    let manager = SharedSvgManager::new();
-    let painter = Painter::with_node_server(exe_path);
-    let server = RpcServer::new(manager, painter);
-    server.start(port).await
+#[derive(Debug)]
+pub struct Svgear {
+    pub manager: SvgManager,
+    pub painter: Painter,
 }
 
-pub async fn run_cli() -> anyhow::Result<()> {
-    // Implement CLI logic here
-    Ok(())
+
+impl Svgear {
+    pub fn new(exe_path: String) -> Self {
+        Svgear {
+            manager: SvgManager::new(),
+            painter: Painter::with_node_server(exe_path),
+        }
+    }
 }
+

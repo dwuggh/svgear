@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use svgear::painter::{NodeServer, PaintParams};
-use svgear::{PaintType, Painter, RenderRequest, SharedSvgManager};
+use svgear::{PaintType, Painter, RenderRequest, RpcServer, SharedSvgManager};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -50,6 +50,13 @@ fn get_input_content(input: &str) -> Result<String> {
         // Use the input directly
         Ok(input.to_string())
     }
+}
+
+pub async fn run_server(port: u16, exe_path: String) -> anyhow::Result<()> {
+    let manager = SharedSvgManager::new();
+    let painter = Painter::with_node_server(exe_path);
+    let server = RpcServer::new(manager, painter);
+    server.start(port).await
 }
 
 #[tokio::main]
@@ -162,7 +169,7 @@ async fn main() -> Result<()> {
             }
         }
         Commands::Serve { port } => {
-            svgear::run_server(port, cli.exe_path).await?;
+            run_server(port, cli.exe_path).await?;
         }
     }
 

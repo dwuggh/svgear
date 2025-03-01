@@ -181,6 +181,13 @@ impl SvgManager {
             .id
             .unwrap_or_else(|| Self::generate_id(&request.svg_data));
 
+        if let Some(bitmap) = self.get_bitmap(&id) {
+            return Ok(RenderResponse {
+                id,
+                cached: true,
+                bitmap: bitmap.clone(),
+            });
+        }
         // Check if we already have this SVG
         let cached = self.get_svg(&id).is_some();
 

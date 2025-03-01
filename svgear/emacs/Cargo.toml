@@ -1,0 +1,20 @@
+[package]
+name = "svgear_emacs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+base64 = "0.22.1"
+emacs = { path = "../../emacs-module-rs" }
+emacs_module = { path = "../../emacs-module-rs/emacs-module" }
+emacs-macros = { path = "../../emacs-module-rs/emacs-macros" }
+log = "0.4.26"
+svgear = { path = "../" }
+tempfile = "3.17.1"
+
+[dev-dependencies]
+emacs-rs-module = { path = "../../emacs-module-rs/rs-module" }
